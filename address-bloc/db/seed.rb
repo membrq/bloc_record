@@ -1,6 +1,6 @@
 require_relative '../models/address_book'
 require_relative '../models/entry'
-require 'bloc_record/lib/bloc_record' #or 'lib/bloc_record'
+require '../lib/bloc_record' 
 
  BlocRecord.connect_to('db/address_bloc.sqlite')
 
