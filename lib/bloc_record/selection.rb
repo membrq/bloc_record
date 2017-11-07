@@ -148,21 +148,20 @@ require 'sqlite3'
      rows_to_array(rows)
    end
 
+   #
+   # Caller should pass in names of columns to order by,
+   # and sorting direction in the format:
+   # Entry.order("columnA DIRECTION", "columnB DIRECTION")
    def order(*args)
-     case args.first
-     when String
        if args.count > 1
-         order = args.join(",")
+         order_and_direction = args.join(",")
+       else
+         order_and_direction = args.first.to_s
        end
-     when Hash
-      order_hash = BlocRecord::Utility.convert_keys(args)
-      order = order_hash.map {|key, value| "#{key} #{BlocRecord::Utility.sql_strings(value)}"}.join(",")
-     end
 
      rows = connection.execute <<-SQL
-       /*SELECT * FROM #{table}*/
-       SELECT #{columns.join ", "} FROM #{table}
-       ORDER BY #{order};
+       SELECT * FROM #{table}
+       ORDER BY #{order_and_direction};
      SQL
      rows_to_array(rows)
    end
@@ -184,10 +183,28 @@ require 'sqlite3'
            SELECT * FROM #{table}
            INNER JOIN #{args.first} ON #{args.first}.#{table}_id = #{table}.id
          SQL
+       #when Hash
+        # rows = connection.execute <<-SQL
+        #   SELECT * FROM #{table}
+        #   INNER JOIN #{args.first} ON #{args.first}.#{table}_id = #{table}.id
+        # SQL
        end
      end
-
      rows_to_array(rows)
+   end
+
+   #add method for 2 inner joins; for Hogwarts tables
+   #args will be column names (args[0], args[1], etc)
+   #for exercise, column names have been hard-coded in SQL code
+   def two_inner_joins(*args)
+     if args.count > 0
+       rows = connection.execute <<-SQL
+       SELECT * FROM #{professor}
+       INNER JOIN #{department} ON #{professor}.#{department}_id = #{department}.id
+       INNER JOIN #{compensation} ON #{professor}.id = #{compensation}.#{professor}_id
+       SQL
+     end
+     rows_to_arrays(rows)
    end
 
    private
@@ -200,7 +217,9 @@ require 'sqlite3'
    end
 
    def rows_to_array(rows)
-     rows.map { |row| new(Hash[columns.zip(row)]) }
+     collection = BlocRecord::Collection.new
+     rows.each { |row| collection << new(Hash[columns.zip(row)]) }
+     collection
    end
 
    #def rows_to_arrays_sub_array(rows)
