@@ -37,6 +37,10 @@ module Persistence
     self.class.update(self.id, updates)
   end
 
+  def destroy
+     self.class.destroy(self.id)
+   end
+
   module ClassMethods
     COLUMNS = [:name] #all columns in table
 
@@ -61,7 +65,7 @@ module Persistence
 
      # update(1, {last_name: "Johnson", address: "123 This Street"})
      def update(ids, updates)
-       if ids != nil && updates != nil 
+       if ids != nil && updates != nil
          updates.each_with_index do |value, index|
            update_one(ids[index], value)
          end
@@ -104,6 +108,61 @@ module Persistence
          super
          puts "There's no method called #{method}"
        end
+     end
+
+     def destroy(*id)
+       if id.length > 1
+         where_clause = "WHERE id IN (#{id.join(",")});"
+       else
+         where_clause = "WHERE id = #{id.first};"
+       end
+
+       connection.execute <<-SQL
+         DELETE FROM #{table} #{where_clause}
+       SQL
+
+       true
+     end
+
+     def destroy_all(conditions_hash=nil)
+       if conditions_hash && !conditions_hash.empty?
+         conditions_hash = BlocRecord::Utility.convert_keys(conditions_hash)
+         conditions = conditions_hash.map {|key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}"}.join(" and ")
+
+         connection.execute <<-SQL
+           DELETE FROM #{table}
+           WHERE #{conditions};
+         SQL
+       else
+         connection.execute <<-SQL
+           DELETE FROM #{table}
+         SQL
+       end
+
+       true
+     end
+   end
+
+   #SQL statement that returns array of entries that match param
+   def destroy_by_attribute(attribute)
+
+     if !attribute.empty?
+       attribute = BlocRecord::Utility.convert_keys(attribute)
+       conditions = attribute.map {|key, value| "#{key}=#{BlocRecord::Utility.sql_strings(value)}"}.join(" and ")
+
+       row = connection.get_first_row <<-SQL
+         DELETE FROM #{table}
+         WHERE #{conditions};
+       SQL
+     end
+   end
+
+   private
+
+   def init_object_from_row(row)
+     if row
+       data = Hash[columns.zip(row)]
+       new(data)
      end
    end
 end

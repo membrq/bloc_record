@@ -68,6 +68,7 @@ class MenuController
   def view_all_entries
     @address_book.entries.each do |entry|
       system "clear"
+      puts "Address Book: #{entry.address_book.name} Entry"
       puts entry.to_s
       entry_submenu(entry)
     end
@@ -151,7 +152,7 @@ class MenuController
   end
 
   def delete_entry(entry)
-    address_book.entries.delete(entry)
+    entry.destroy
     puts "#{entry.name} has been deleted"
   end
 
